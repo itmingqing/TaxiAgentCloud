@@ -39,7 +39,7 @@ Describe 'Jenkins dynamic agent templates' {
         ([regex]::Matches($yaml, '10\.243\.194\.108:30500/taxiagent-ci/jenkins-inbound-agent:3385\.vf1123fb_515da_-1-jdk21')).Count | Should -Be 2
         $yaml | Should -Match '10\.243\.194\.108:30500/taxiagent-ci/maven:3\.9\.11-eclipse-temurin-21'
         $yaml | Should -Match '10\.243\.194\.108:30500/taxiagent-ci/node:22-bookworm-slim'
-        $yaml | Should -Match 'moby/buildkit:v0\.30\.0-rootless'
+        $yaml | Should -Match '10\.243\.194\.108:30500/taxiagent-ci/buildkit:v0\.30\.0-rootless'
         $yaml | Should -Match 'registry\.k8s\.io/kubectl:v1\.36\.4'
         $yaml | Should -Not -Match 'image:\s*docker\.io/(?:jenkins/inbound-agent|library/(?:maven|node))'
     }
@@ -52,10 +52,17 @@ Describe 'Jenkins dynamic agent templates' {
         ([regex]::Matches($yaml, 'emptyDir:')).Count | Should -BeGreaterOrEqual 3
     }
 
+    It 'keeps the minimal kubectl image alive without requiring a shell' {
+        $yaml = Get-Content -Raw $agentPod
+        $yaml | Should -Match 'name:\s*kubectl[\s\S]*command:\s*\[kubectl\]'
+        $yaml | Should -Match 'name:\s*kubectl[\s\S]*- proxy[\s\S]*- --address=127\.0\.0\.1'
+    }
+
     It 'uses rootless BuildKit without Docker socket or privileged containers' {
         $yaml = Get-Content -Raw $agentPod
         $yaml | Should -Match 'runAsNonRoot:\s*true'
-        $yaml | Should -Match 'runAsUser:\s*1000'
+        ([regex]::Matches($yaml, 'runAsUser:\s*1000')).Count | Should -Be 6
+        ([regex]::Matches($yaml, 'runAsGroup:\s*1000')).Count | Should -Be 6
         $yaml | Should -Match 'oci-worker-no-process-sandbox'
         $yaml | Should -Match 'seccompProfile:\s*\r?\n\s+type:\s*Unconfined'
         $yaml | Should -Not -Match 'privileged:\s*true'
@@ -92,8 +99,11 @@ Describe 'Jenkins agent image cache' {
         $script | Should -Match 'jenkins/inbound-agent:3385\.vf1123fb_515da_-1-jdk21'
         $script | Should -Match 'library/maven:3\.9\.11-eclipse-temurin-21'
         $script | Should -Match 'library/node:22-bookworm-slim'
+        $script | Should -Match 'moby/buildkit:v0\.30\.0-rootless'
         $script | Should -Match 'PUSH_REGISTRY=.*localhost:30500'
         $script | Should -Match 'TARGET_REPOSITORY=.*taxiagent-ci'
+        $script | Should -Match 'PULL_TIMEOUT_SECONDS=.*600'
+        $script | Should -Match 'timeout.*PULL_TIMEOUT_SECONDS.*docker pull'
         $script | Should -Match 'docker push'
         $script | Should -Not -Match '(?i)password\s*='
     }

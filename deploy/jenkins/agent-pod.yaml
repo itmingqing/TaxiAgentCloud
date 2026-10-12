@@ -30,6 +30,8 @@ spec:
           memory: 512Mi
           ephemeral-storage: 1Gi
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         allowPrivilegeEscalation: false
         capabilities:
           drop: [ALL]
@@ -97,6 +99,8 @@ spec:
           memory: 8Gi
           ephemeral-storage: 20Gi
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         allowPrivilegeEscalation: false
         capabilities:
           drop: [ALL]
@@ -144,6 +148,8 @@ spec:
           memory: 512Mi
           ephemeral-storage: 1Gi
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         allowPrivilegeEscalation: false
         capabilities:
           drop: [ALL]
@@ -172,6 +178,8 @@ spec:
           memory: 2Gi
           ephemeral-storage: 8Gi
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         allowPrivilegeEscalation: false
         capabilities:
           drop: [ALL]
@@ -179,7 +187,7 @@ spec:
         - name: workspace
           mountPath: /home/jenkins/agent
     - name: buildkitd
-      image: docker.io/moby/buildkit:v0.30.0-rootless
+      image: 10.243.194.108:30500/taxiagent-ci/buildkit:v0.30.0-rootless
       imagePullPolicy: IfNotPresent
       args:
         - --config
@@ -245,8 +253,11 @@ spec:
     - name: kubectl
       image: registry.k8s.io/kubectl:v1.36.4
       imagePullPolicy: IfNotPresent
-      command: [cat]
-      tty: true
+      command: [kubectl]
+      args:
+        - proxy
+        - --address=127.0.0.1
+        - --port=8001
       resources:
         requests:
           cpu: 100m
@@ -257,6 +268,8 @@ spec:
           memory: 512Mi
           ephemeral-storage: 1Gi
       securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
         allowPrivilegeEscalation: false
         capabilities:
           drop: [ALL]
